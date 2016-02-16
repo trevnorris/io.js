@@ -136,6 +136,12 @@ static void SetupHooks(const FunctionCallbackInfo<Value>& args) {
 }
 
 
+static void GetAsyncWrapUid(const FunctionCallbackInfo<Value>& args) {
+  Environment* env = Environment::GetCurrent(args);
+  args.GetReturnValue().Set(static_cast<double>(env->get_async_wrap_uid()));
+}
+
+
 static void Initialize(Local<Object> target,
                 Local<Value> unused,
                 Local<Context> context) {
@@ -146,6 +152,7 @@ static void Initialize(Local<Object> target,
   env->SetMethod(target, "setupHooks", SetupHooks);
   env->SetMethod(target, "disable", DisableHooksJS);
   env->SetMethod(target, "enable", EnableHooksJS);
+  env->SetMethod(target, "uid", GetAsyncWrapUid);
 
   Local<Object> async_providers = Object::New(isolate);
 #define V(PROVIDER)                                                           \
