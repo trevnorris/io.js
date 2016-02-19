@@ -1136,6 +1136,7 @@ Local<Value> MakeCallback(Environment* env,
 
   Local<Function> pre_fn = env->async_hooks_pre_function();
   Local<Function> post_fn = env->async_hooks_post_function();
+  Local<Function> final_fn = env->async_hooks_final_function();
   Local<Object> object, domain;
   bool ran_init_callback = false;
   bool has_domain = false;
@@ -1199,7 +1200,12 @@ Local<Value> MakeCallback(Environment* env,
   }
 
   if (!env->KickNextTick(&callback_scope)) {
-    return Undefined(env->isolate());
+    ret = Undefined(env->isolate());
+  }
+
+  if (ran_init_callback && !final_fn.IsEmpty()) {
+    if (final_fn->Call(object, 0, nullptr).IsEmpty())
+      FatalError("node::MakeCallback", "final hook threw");
   }
 
   return ret;

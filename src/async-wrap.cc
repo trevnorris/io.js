@@ -132,7 +132,9 @@ static void SetupHooks(const FunctionCallbackInfo<Value>& args) {
   if (args[2]->IsFunction())
     env->set_async_hooks_post_function(args[2].As<Function>());
   if (args[3]->IsFunction())
-    env->set_async_hooks_destroy_function(args[3].As<Function>());
+    env->set_async_hooks_final_function(args[3].As<Function>());
+  if (args[4]->IsFunction())
+    env->set_async_hooks_destroy_function(args[4].As<Function>());
 }
 
 
@@ -165,6 +167,7 @@ static void Initialize(Local<Object> target,
   env->set_async_hooks_init_function(Local<Function>());
   env->set_async_hooks_pre_function(Local<Function>());
   env->set_async_hooks_post_function(Local<Function>());
+  env->set_async_hooks_final_function(Local<Function>());
   env->set_async_hooks_destroy_function(Local<Function>());
 }
 
@@ -186,6 +189,7 @@ Local<Value> AsyncWrap::MakeCallback(const Local<Function> cb,
 
   Local<Function> pre_fn = env()->async_hooks_pre_function();
   Local<Function> post_fn = env()->async_hooks_post_function();
+  Local<Function> final_fn = env()->async_hooks_final_function();
   Local<Value> uid = Integer::New(env()->isolate(), get_uid());
   Local<Object> context = object();
   Local<Object> process = env()->process_object();
@@ -252,11 +256,14 @@ Local<Value> AsyncWrap::MakeCallback(const Local<Function> cb,
 
   if (tick_info->length() == 0) {
     tick_info->set_index(0);
-    return ret;
+  } else if (
+      env()->tick_callback_function()->Call(process, 0, nullptr).IsEmpty()) {
+    ret = Undefined(env()->isolate());
   }
 
-  if (env()->tick_callback_function()->Call(process, 0, nullptr).IsEmpty()) {
-    return Undefined(env()->isolate());
+  if (ran_init_callback() && !final_fn.IsEmpty()) {
+    if (final_fn->Call(context, 1, &uid).IsEmpty())
+      FatalError("node::AsyncWrap::MakeCallback", "final hook threw");
   }
 
   return ret;
