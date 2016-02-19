@@ -72,7 +72,7 @@ void StreamBase::GetFD(Local<String> key,
                        const PropertyCallbackInfo<Value>& args) {
   StreamBase* wrap = Unwrap<Base>(args.Holder());
 
-  if (!wrap->IsAlive())
+  if (wrap == nullptr || !wrap->IsAlive())
     return args.GetReturnValue().Set(UV_EINVAL);
 
   args.GetReturnValue().Set(wrap->GetFD());
@@ -94,7 +94,7 @@ template <class Base,
 void StreamBase::JSMethod(const FunctionCallbackInfo<Value>& args) {
   StreamBase* wrap = Unwrap<Base>(args.Holder());
 
-  if (!wrap->IsAlive())
+  if (wrap == nullptr || !wrap->IsAlive())
     return args.GetReturnValue().Set(UV_EINVAL);
 
   args.GetReturnValue().Set((wrap->*Method)(args));
