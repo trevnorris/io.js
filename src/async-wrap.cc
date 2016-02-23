@@ -241,7 +241,10 @@ Local<Value> AsyncWrap::MakeCallback(const Local<Function> cb,
   Local<Value> ret = cb->Call(context, argc, argv);
 
   if (ran_init_callback() && !post_fn.IsEmpty()) {
-    if (post_fn->Call(context, 1, &uid).IsEmpty())
+    Local<Value> did_throw =
+        v8::Boolean::New(env()->isolate(), ret.IsEmpty());
+    Local<Value> vals[] = { uid, did_throw };
+    if (post_fn->Call(context, ARRAY_SIZE(vals), vals).IsEmpty())
       FatalError("node::AsyncWrap::MakeCallback", "post hook threw");
   }
 

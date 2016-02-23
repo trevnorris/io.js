@@ -1181,7 +1181,9 @@ Local<Value> MakeCallback(Environment* env,
   Local<Value> ret = callback->Call(recv, argc, argv);
 
   if (ran_init_callback && !post_fn.IsEmpty()) {
-    if (post_fn->Call(object, 0, nullptr).IsEmpty())
+    Local<Value> did_throw =
+        v8::Boolean::New(env->isolate(), ret.IsEmpty());
+    if (post_fn->Call(object, 1, &did_throw).IsEmpty())
       FatalError("node::MakeCallback", "post hook threw");
   }
 
