@@ -274,17 +274,19 @@ Local<Value> AsyncWrap::MakeCallback(const Local<Function> cb,
 
   if (tick_info->length() == 0) {
     tick_info->set_index(0);
-  } else if (
-      env()->tick_callback_function()->Call(process, 0, nullptr).IsEmpty()) {
-    ret = Undefined(env()->isolate());
   }
 
+  Local<Value> v = env()->tick_callback_function()->Call(process, 0, nullptr);
+
   if (ran_init_callback() && !final_fn.IsEmpty()) {
-    if (final_fn->Call(context, 1, &uid).IsEmpty())
+    Local<Value> did_throw =
+        v8::Boolean::New(env()->isolate(), v.IsEmpty());
+    Local<Value> vals[] = { uid, did_throw };
+    if (final_fn->Call(context, ARRAY_SIZE(vals), vals).IsEmpty())
       FatalError("node::AsyncWrap::MakeCallback", "final hook threw");
   }
 
-  return ret;
+  return v.IsEmpty() ? Undefined(env()->isolate()).As<Value>() : v;
 }
 
 }  // namespace node
