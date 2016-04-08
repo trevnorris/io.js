@@ -300,10 +300,13 @@ class Environment {
     inline int fields_count() const;
     inline bool callbacks_enabled();
     inline void set_enable_callbacks(uint32_t flag);
+    inline int64_t get_async_wrap_uid();
+    inline v8::Local<v8::Uint32Array> get_uid_array();
 
    private:
     friend class Environment;  // So we can call the constructor.
-    inline AsyncHooks();
+    inline AsyncHooks(Environment* env);
+    v8::Persistent<v8::Uint32Array> async_wrap_uid_array_;
 
     enum Fields {
       // Set this to not zero if the init hook should be called.
@@ -312,6 +315,8 @@ class Environment {
     };
 
     uint32_t fields_[kFieldsCount];
+    int64_t async_wrap_uid_;
+    Environment* env_;
 
     DISALLOW_COPY_AND_ASSIGN(AsyncHooks);
   };
@@ -577,7 +582,6 @@ class Environment {
   bool printed_error_;
   bool trace_sync_io_;
   size_t makecallback_cntr_;
-  int64_t async_wrap_uid_;
   debugger::Agent debugger_agent_;
 
   HandleWrapQueue handle_wrap_queue_;

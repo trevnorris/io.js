@@ -156,13 +156,20 @@ static void SetupHooks(const FunctionCallbackInfo<Value>& args) {
 }
 
 
+static void GetUidArray(const FunctionCallbackInfo<Value>& args) {
+  Environment* env = Environment::GetCurrent(args);
+  args.GetReturnValue().Set(env->async_hooks()->get_uid_array());
+}
+
+
 static void Initialize(Local<Object> target,
-                Local<Value> unused,
-                Local<Context> context) {
+                       Local<Value> unused,
+                       Local<Context> context) {
   Environment* env = Environment::GetCurrent(context);
   Isolate* isolate = env->isolate();
   HandleScope scope(isolate);
 
+  env->SetMethod(target, "getUidArray", GetUidArray);
   env->SetMethod(target, "setupHooks", SetupHooks);
   env->SetMethod(target, "disable", DisableHooksJS);
   env->SetMethod(target, "enable", EnableHooksJS);

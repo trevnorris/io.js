@@ -81,8 +81,18 @@ inline v8::Isolate* Environment::IsolateData::isolate() const {
   return isolate_;
 }
 
-inline Environment::AsyncHooks::AsyncHooks() {
+inline Environment::AsyncHooks::AsyncHooks(Environment* env)
+    : async_wrap_uid_(0),
+      env_(env) {
   for (int i = 0; i < kFieldsCount; i++) fields_[i] = 0;
+  const size_t array_length = sizeof(async_wrap_uid_) / sizeof(int32_t);
+  static_assert(array_length == 2, "async_wrap_uid_ unexpected size");
+  v8::HandleScope handle_scope(env_->isolate());
+  v8::Local<v8::ArrayBuffer> ab =
+      v8::ArrayBuffer::New(env_->isolate(), &async_wrap_uid_, array_length);
+  v8::Local<v8::Uint32Array> ua =
+      v8::Uint32Array::New(ab, 0, array_length);
+  async_wrap_uid_array_.Reset(env_->isolate(), ua);
 }
 
 inline uint32_t* Environment::AsyncHooks::fields() {
@@ -99,6 +109,14 @@ inline bool Environment::AsyncHooks::callbacks_enabled() {
 
 inline void Environment::AsyncHooks::set_enable_callbacks(uint32_t flag) {
   fields_[kEnableCallbacks] = flag;
+}
+
+inline int64_t Environment::AsyncHooks::get_async_wrap_uid() {
+  return ++async_wrap_uid_;
+}
+
+inline v8::Local<v8::Uint32Array> Environment::AsyncHooks::get_uid_array() {
+  return async_wrap_uid_array_.Get(env_->isolate());
 }
 
 inline Environment::AsyncCallbackScope::AsyncCallbackScope(Environment* env)
@@ -216,12 +234,12 @@ inline Environment::Environment(v8::Local<v8::Context> context,
                                 uv_loop_t* loop)
     : isolate_(context->GetIsolate()),
       isolate_data_(IsolateData::GetOrCreate(context->GetIsolate(), loop)),
+      async_hooks_(this),
       timer_base_(uv_now(loop)),
       using_domains_(false),
       printed_error_(false),
       trace_sync_io_(false),
       makecallback_cntr_(0),
-      async_wrap_uid_(0),
       debugger_agent_(this),
       http_parser_buffer_(nullptr),
       context_(context->GetIsolate(), context) {
@@ -373,7 +391,7 @@ inline void Environment::set_trace_sync_io(bool value) {
 }
 
 inline int64_t Environment::get_async_wrap_uid() {
-  return ++async_wrap_uid_;
+  return async_hooks()->get_async_wrap_uid();
 }
 
 inline uint32_t* Environment::heap_statistics_buffer() const {
